@@ -5,7 +5,7 @@ classical post-processing for Quantum Key Distribution (QKD).
 
 The code was developed for simulation and performance analysis of classical post-processing in QKD systems.
 
-**University:** Sapienza University of Rome 
+**University:** Sapienza University of Rome  
 **Year:** 2024/2025
 
 ## 📊 Implemented Components
