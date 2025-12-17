@@ -13,19 +13,16 @@ from information_reconciliation import ldpc_spa_decoder_qkd as ldpc
 from information_reconciliation import matrix_utils as mu
 
 # ===============================================================================================================
-# TEST Frame Error Rate (FER) with parity-check matrix [Hb_324_648] from IEEE 802.11n Standard
+# TEST average iteration number of LDPC decoder with parity-check matrix [Hb_324_648] from IEEE 802.11n Standard
 
-# FER = (number of incorrectly decoded frames) / total number of transmitted frames
-# --> it measures how many entire codewords (frames) are decoded incorrectly
-# To track the FER, we count the number of codewords that are incorrect, after each full decoding
-# (the algorithm reaches max iterations), over a total of N codewords (random strings with a certain QBER)
+# We evaluate how many iterations, on average, the decoding algorithm takes to correct a binary string, as a function of the QBER.
 # ===============================================================================================================
 
-def test1_FER(iterations):
+def test1_avg_iterations(max_iterations):
 
-    errors_values = [10, 20, 30, 40, 50, 55, 60, 62, 65, 70]
-    N = 150  # number of frames (keys) to decode for each errors in the list
-    FER_values = []
+    errors_values = [10, 20, 30, 40, 50, 55, 60, 62, 65, 68, 70]
+    N = 150  # number of binary strings to decode for each errors in the list
+    average_iteration_values_per_qber = []
 
     # Generate the full parity-check matrix H from Hb_324_648
     z = 27  # submatrix size
@@ -35,7 +32,8 @@ def test1_FER(iterations):
 
     for errors in tqdm(errors_values):
         qber = errors / 648 # qber = errors / len(string_X)
-        incorrectly_decoded_frames = 0
+        total_number_of_iterations = 0 # we will consider only the successfull runs of the algorithm
+        successful_runs = 0
         for _ in range(N):
             # Parameters (key length == 648 bits)
             # Alice's binary string X (corresponds to the valid codeword)
@@ -51,44 +49,46 @@ def test1_FER(iterations):
             syndrome_Sa = np.mod(H @ string_X.T, 2) # syndrome length == 324 (n - k), H.shape[0]
     
             # Run the decoding algorithm
-            decoded_codeword, qber_list, iteration_number = ldpc.ldpc_spa_syndrome_decoder(string_Y, (vn ,cn), qber, iterations, syndrome_Sa, H, string_X)
+            decoded_codeword, qber_list, iteration_number = ldpc.ldpc_spa_syndrome_decoder(string_Y, (vn ,cn), qber, max_iterations, syndrome_Sa, H, string_X)
             
-            # Check decoding correctness: if decoding failed, increase the number of incorrectly decoded frames
-            if (np.array_equal(decoded_codeword, string_X) != True):
-                incorrectly_decoded_frames += 1
+            # If decoding was successfull, save the number of iterations it took
+            if (np.array_equal(decoded_codeword, string_X) == True):
+                successful_runs += 1 # the decoding algorithm succeded to correct the binary string
+                total_number_of_iterations += iteration_number
 
-        # Compute the FER for this QBER level (errors)
-        FER_values.append(incorrectly_decoded_frames / N) # 0 <= FER value <= 1
+        # If, after trying to decode N binary strings, the number of successful runs is 0,
+        # this means that the QBER level is too high and the decoding algorithm will never succeed
+        if (successful_runs == 0):
+            average_iteration_values_per_qber.append(max_iterations)
+        else:
+            # Compute the average number of iterations for this QBER level
+            average_iteration_values_per_qber.append(total_number_of_iterations / successful_runs)
 
     # QBER = (errors/len(string_X)) * 100
     QBER_values = [(errors/len(string_X)) * 100 for errors in errors_values]
 
-    # Plot FER evolution vs QBER
-    # At low QBER: FER \approx 0 --> all frames decoded correctly
-    # At high QBER: FER \approx 1 --> almost all frames fail (discarded)
-    # The transition region (where FER rises sharply) shows the decoder’s correction limit
+    # Plot the evolution of average number of iterations vs QBER
+    # At low QBER: average number of iterations is expected to be low
+    # At high QBER: average number of iterations is expected to increase
     plt.figure()
-    plt.plot(QBER_values, FER_values, marker='o')
+    plt.plot(QBER_values, average_iteration_values_per_qber, marker='o')
     plt.xlabel('QBER (%)')
-    plt.ylabel('Frame Error Rate (FER)')
-    plt.title('FER vs QBER for SPA using Hb_324_648')
+    plt.ylabel('Average iteration number of SPA decoding')
+    plt.title('Average iteration number vs QBER for SPA using Hb_324_648')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
     plt.show()
 
 # ===============================================================================================================
-# TEST Frame Error Rate (FER) with parity-check matrix [Hb_972_1944] from IEEE 802.11n Standard
+# TEST average iteration number of LDPC decoder with parity-check matrix [Hb_972_1944] from IEEE 802.11n Standard
 
-# FER = (number of incorrectly decoded frames) / total number of transmitted frames
-# --> it measures how many entire codewords (frames) are decoded incorrectly
-# To track the FER, we count the number of codewords that are incorrect, after each full decoding
-# (the algorithm reaches max iterations), over a total of N codewords (random strings with a certain QBER)
+# We evaluate how many iterations, on average, the decoding algorithm takes to correct a binary string, as a function of the QBER.
 # ===============================================================================================================
 
-def test2_FER(iterations):
+def test2_avg_iterations(max_iterations):
 
-    errors_values = [20, 50, 80, 110, 130, 150, 165, 175, 180, 190, 200]
-    N = 150  # number of frames (keys) to decode for each errors in the list
-    FER_values = []
+    errors_values = [20, 50, 80, 110, 130, 150, 165, 175, 180, 190, 200, 205]
+    N = 150  # number of binary strings to decode for each errors in the list
+    average_iteration_values_per_qber = []
 
     # Generate the full parity-check matrix H from Hb_972_1944
     z = 81  # submatrix size
@@ -98,7 +98,8 @@ def test2_FER(iterations):
 
     for errors in tqdm(errors_values):
         qber = errors / 1944 # qber = errors / len(string_X)
-        incorrectly_decoded_frames = 0
+        total_number_of_iterations = 0 # we will consider only the successfull runs of the algorithm
+        successful_runs = 0
         for _ in range(N):
             # Parameters (key length == 1944 bits)
             # Alice's binary string X (corresponds to the valid codeword)
@@ -114,35 +115,39 @@ def test2_FER(iterations):
             syndrome_Sa = np.mod(H @ string_X.T, 2) # syndrome length == 972 (n - k), H.shape[0]
     
             # Run the decoding algorithm
-            decoded_codeword, qber_list, iteration_number = ldpc.ldpc_spa_syndrome_decoder(string_Y, (vn ,cn), qber, iterations, syndrome_Sa, H, string_X)
+            decoded_codeword, qber_list, iteration_number = ldpc.ldpc_spa_syndrome_decoder(string_Y, (vn ,cn), qber, max_iterations, syndrome_Sa, H, string_X)
             
-            # Check decoding correctness: if decoding failed, increase the number of incorrectly decoded frames
-            if (np.array_equal(decoded_codeword, string_X) != True):
-                incorrectly_decoded_frames += 1
+            # If decoding was successfull, save the number of iterations it took
+            if (np.array_equal(decoded_codeword, string_X) == True):
+                successful_runs += 1 # the decoding algorithm succeded to correct the binary string
+                total_number_of_iterations += iteration_number
 
-        # Compute the FER for this QBER level (errors)
-        FER_values.append(incorrectly_decoded_frames / N) # 0 <= FER value <= 1
+        # If, after trying to decode N binary strings, the number of successful runs is 0,
+        # this means that the QBER level is too high and the decoding algorithm will never succeed
+        if (successful_runs == 0):
+            average_iteration_values_per_qber.append(max_iterations)
+        else:
+            # Compute the average number of iterations for this QBER level
+            average_iteration_values_per_qber.append(total_number_of_iterations / successful_runs)
 
     # QBER = (errors/len(string_X)) * 100
     QBER_values = [(errors/len(string_X)) * 100 for errors in errors_values]
 
-    # Plot FER evolution vs QBER
-    # At low QBER: FER \approx 0 --> all frames decoded correctly
-    # At high QBER: FER \approx 1 --> almost all frames fail (discarded)
-    # The transition region (where FER rises sharply) shows the decoder’s correction limit
+    # Plot the evolution of average number of iterations vs QBER
+    # At low QBER: average number of iterations is expected to be low
+    # At high QBER: average number of iterations is expected to increase
     plt.figure()
-    plt.plot(QBER_values, FER_values, marker='o')
+    plt.plot(QBER_values, average_iteration_values_per_qber, marker='o')
     plt.xlabel('QBER (%)')
-    plt.ylabel('Frame Error Rate (FER)')
-    plt.title('FER vs QBER for SPA using Hb_972_1944')
+    plt.ylabel('Average iteration number of SPA decoding')
+    plt.title('Average iteration number vs QBER for SPA using Hb_972_1944')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.savefig("Test2-FER.png")  #  Save the figure automatically
     plt.show()
 
 # ===============================================================================================================
 
-# TEST Frame Error Rate (FER) with parity-check matrix [Hb_324_648]
-#test1_FER(iterations=100) # 150*10 = 1500 keys (each of length 648)
+# TEST average iteration number of LDPC decoder with parity-check matrix [Hb_324_648]
+test1_avg_iterations(max_iterations=100)
 
-# TEST Frame Error Rate (FER) with parity-check matrix [Hb_972_1944]
-test2_FER(iterations=100) # 150*11 = 1650 keys (each of length 1944)
+# TEST average iteration number of LDPC decoder with parity-check matrix [Hb_972_1944]
+#test2_avg_iterations(max_iterations=100)
