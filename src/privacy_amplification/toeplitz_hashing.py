@@ -82,7 +82,7 @@ def standard_toeplitz_hashing(extractor_input: GF2, seed: GF2, output_length: In
         extractor_input: Binary array (bit string) from the weak random source.
         seed: Uniform seed used to populate the Toeplitz matrix (seed length = m + n - 1).
         output_length: Length of the randomness extractor's output. The optimal output length,
-            given some constraints on the tolerated error and the weak random source, is computed using calculate_output_length().
+            given some constraints on the tolerated error and the weak random source, is computed using calculate_length().
 
     Returns:
         An almost uniform (up to an error error_bound) binary array.
