@@ -73,6 +73,7 @@ def test1_FER(iterations):
     plt.ylabel('Frame Error Rate (FER)')
     plt.title('FER vs QBER for SPA using Hb_324_648')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.savefig("Test1_FER.png")  #  Save the figure automatically
     plt.show()
 
 # ===============================================================================================================
@@ -136,13 +137,13 @@ def test2_FER(iterations):
     plt.ylabel('Frame Error Rate (FER)')
     plt.title('FER vs QBER for SPA using Hb_972_1944')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.savefig("Test2-FER.png")  #  Save the figure automatically
+    plt.savefig("Test2_FER.png")  #  Save the figure automatically
     plt.show()
 
 # ===============================================================================================================
 
 # TEST Frame Error Rate (FER) with parity-check matrix [Hb_324_648]
-#test1_FER(iterations=100) # 150*10 = 1500 keys (each of length 648)
+test1_FER(iterations=100) # 150*10 = 1500 keys (each of length 648)
 
 # TEST Frame Error Rate (FER) with parity-check matrix [Hb_972_1944]
-test2_FER(iterations=100) # 150*11 = 1650 keys (each of length 1944)
+#test2_FER(iterations=100) # 150*11 = 1650 keys (each of length 1944)

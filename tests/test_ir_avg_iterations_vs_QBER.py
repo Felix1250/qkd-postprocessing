@@ -20,7 +20,7 @@ from information_reconciliation import matrix_utils as mu
 
 def test1_avg_iterations(max_iterations):
 
-    errors_values = [10, 20, 30, 40, 50, 55, 60, 62, 65, 68, 70]
+    errors_values = [10, 20, 30, 40, 50, 57, 62, 65, 66, 70, 72]
     N = 150  # number of binary strings to decode for each errors in the list
     average_iteration_values_per_qber = []
 
@@ -76,6 +76,7 @@ def test1_avg_iterations(max_iterations):
     plt.ylabel('Average iteration number of SPA decoding')
     plt.title('Average iteration number vs QBER for SPA using Hb_324_648')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.savefig("Test1_avg_iterations.png")  #  Save the figure automatically
     plt.show()
 
 # ===============================================================================================================
@@ -86,7 +87,7 @@ def test1_avg_iterations(max_iterations):
 
 def test2_avg_iterations(max_iterations):
 
-    errors_values = [20, 50, 80, 110, 130, 150, 165, 175, 180, 190, 200, 205]
+    errors_values = [20, 50, 80, 110, 130, 150, 165, 180, 190, 200, 203, 205, 210, 214]
     N = 150  # number of binary strings to decode for each errors in the list
     average_iteration_values_per_qber = []
 
@@ -142,12 +143,13 @@ def test2_avg_iterations(max_iterations):
     plt.ylabel('Average iteration number of SPA decoding')
     plt.title('Average iteration number vs QBER for SPA using Hb_972_1944')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.savefig("Test2_avg_iterations.png")  #  Save the figure automatically
     plt.show()
 
 # ===============================================================================================================
 
 # TEST average iteration number of LDPC decoder with parity-check matrix [Hb_324_648]
-test1_avg_iterations(max_iterations=100)
+#test1_avg_iterations(max_iterations=100)
 
 # TEST average iteration number of LDPC decoder with parity-check matrix [Hb_972_1944]
-#test2_avg_iterations(max_iterations=100)
+test2_avg_iterations(max_iterations=100)

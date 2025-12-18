@@ -47,6 +47,8 @@ def test1_QBER(errors, iterations):
     # Check decoding correctness
     if np.array_equal(decoded_codeword, string_X) == False:
         raise ValueError("Max iterations reached! The decoding algorithm failed.")
+    
+    QBER_values = [q * 100 for q in qber_list]
 
     # Print information
     print("Test 1")
@@ -55,11 +57,11 @@ def test1_QBER(errors, iterations):
     print("Iterations:", iteration_number)
 
     # Display QBER evolution
-    plt.plot(qber_list, marker='o')
+    plt.plot(QBER_values, marker='o')
     plt.xlabel("Iteration")
-    plt.ylabel("QBER")
+    plt.ylabel("QBER (%)")
     plt.title("QBER vs Iterations for SPA using Hb_324_648")
-    plt.grid(True)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
     plt.show()
 
     return
@@ -101,6 +103,8 @@ def test2_QBER(errors, iterations):
     # Check decoding correctness
     if np.array_equal(decoded_codeword, string_X) == False:
         raise ValueError("Max iterations reached! The decoding algorithm failed.")
+    
+    QBER_values = [q * 100 for q in qber_list]
 
     # Print information
     print("Test 2")
@@ -109,23 +113,38 @@ def test2_QBER(errors, iterations):
     print("Iterations:", iteration_number)
 
     # Display QBER evolution
-    plt.plot(qber_list, marker='o')
+    plt.plot(QBER_values, marker='o')
     plt.xlabel("Iteration")
-    plt.ylabel("QBER")
+    plt.ylabel("QBER (%)")
     plt.title("QBER vs Iterations for SPA using Hb_972_1944")
-    plt.grid(True)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
     plt.show()
 
     return
 
 # ===============================================================================================================
 
+'''
+number_of_failures = 0
+number_of_successes = 0
+for _ in range(150):
+    result = test1_QBER(errors=60, iterations=100)
+    if result == 1:
+        number_of_failures += 1
+    else:
+        number_of_successes += 1
+
+print("Failures: ", number_of_failures)
+print("Successes: ", number_of_successes)
+'''
+
 # parity-check matrix [Hb_324_648]
 # --> key length == 648 bits (n)
 # --> syndrome length == 324 (n - k)
-test1_QBER(errors=60, iterations=100) # Max errors == 60?
+#test1_QBER(errors=60, iterations=100) # Max errors == 60?
+
 
 # parity-check matrix [Hb_972_1944]
 # --> key length == 1944 bits (n)
 # --> syndrome length == 972 bits (n - k)
-#test2_QBER(errors=182, iterations=100) # Max errors == 180?
+test2_QBER(errors=182, iterations=100) # Max errors == 180?
