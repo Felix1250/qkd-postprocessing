@@ -1,107 +1,136 @@
-import random
+import matplotlib.pyplot as plt
 import numpy as np
-import math
+import random
+import matplotlib
+import matplotlib as mpl
+import matplotlib.patches as patches  
+from numba import njit
+
+@njit
 def generate_seed():
     return random.getrandbits(32)
 
-def generate_random_Qbits(seed, length, px, pz):
-    random.seed(seed)
+def __pop_random(lst):
+    idx = random.randrange(0, len(lst))
+    return lst.pop(idx)
 
-    mu1 = 1
-    mu2 = 2
-    mu3 = 1 # intensity of the 1 in  X window
-
-    #generate random qubits
-    bit_vector = np.zeros(length)
-    phase_vector = np.zeros(length)
-    amplitude_vector = np.zeros(length)
-    window_vector = np.zeros(length)
-
-
-    # 0 = X window = signal window 
-    # 1 = Z window = decoy window
-    for i in range(0,length):
-        if random.random() < px:
-            window_vector[i] = "0"
-            j = random.randint(0,2)
-            if j == 0:
-                bit_vector[i] = 0
-                phase_vector[i] = 0
-                amplitude_vector[i] = 0
-            elif j == 1:
-                bit_vector[i] = 0
-                phase_vector[i] = random.uniform(0,2*math.pi)
-                amplitude_vector[i] = mu1
-            else:
-                bit_vector[i] = 0
-                phase_vector[i] = random.uniform(0,2*math.pi)
-                amplitude_vector[i] = mu2
-        else:
-            window_vector[i] = "1"
-            if random.random() < pz:
-                bit_vector[i] = 0
-                phase_vector[i] = 0
-                amplitude_vector[i] = 0
-            else: 
-                bit_vector[i] = 1
-                phase_vector[i] = random.uniform(0,2*math.pi)
-                amplitude_vector[i] = mu3
-
-        bit_vector[i] = random.randint(0,1)
-        phase_vector[i] = random.uniform(0,2*math.pi)
-        amplitude_vector[i] = random.randint(0,1)
-        
+def map_pairs(length):
+    if length %2 == 1:
+        length -=1
+    lst = []
+    for i in range(length):
+        lst.append(i)
+    pairs = []
+    while lst:
+        rand1 = __pop_random(lst)
+        rand2 = __pop_random(lst)
+        pair = rand1, rand2
+        pairs.append(pair)
     
-    qbits = [window_vector,bit_vector,phase_vector, amplitude_vector]
-    return qbits
+    return pairs
 
-def beamsplitter_events(n,m,nu,gamma):
-    p = math.exp(-nu) *(math.pow((nu*gamma),n))/math.factorial(int(n)) * (math.pow(nu*(1-gamma),m))/math.factorial(int(m))
-    return p
-
-def beamsplitter_probability(x1,x2,r, theta):
-    nu = x1 +x2
-    gamma = (x1 * (1-r) + x2*r + 2 * math.sqrt(r*(1-r)*x1*x2)*math.cos(theta))/nu
-    #print(nu)
-    #print(gamma)
-    #print(theta)
-    #print(math.factorial(1))
-    #print(math.factorial(0))
-    #print(math.factorial(2))
-    print("-----------")
-    #print(beamsplitter_events(0,0,nu,gamma))
-    #print(beamsplitter_events(1,0,nu,gamma))
-    #print(beamsplitter_events(0,1,nu,gamma))
-    print(beamsplitter_events(1,1,nu,gamma))
-    print(beamsplitter_events(0,2,nu,gamma))
-    print(beamsplitter_events(2,0,nu,gamma))
-    #print(beamsplitter_events(2,1,nu,gamma))
-    #return p
-
-beamsplitter_probability(1,1,0.5,math.pi/2)
-beamsplitter_probability(1,1,0.5,math.pi)
-beamsplitter_probability(1,1,0.5,0)
-
-
-def noise(qbits):
-    eta_1 = 0.9  #looks like a n
-    eta_2 = 0.9 # different values for each detector, might come in handy later
-    Pd_1 = 10^-10 # dark count rate
-    Pd_2 = 10^-10   
-    r = 0.5 #reflectivity of beamsplitter
-    #beamsplitter_probability(1,1,1,0)
-
-    #calculate the probability of the number of photons on each side after the beamsplitter happening
+def print_error_rate(array1,array2,signal_bits = []):
+    counter = 0
+    for i in range(len(array1)):
+        if array1[i] != array2[i]:
+            counter +=1
+    print("faulty bits: " + str(counter))
+    print("error rate: " + str(counter/len(array1)))
 
 
 
-    return qbits
+def make_heatmap(array,path):
+    count_photons = 0
+    for i in range(len(array)):
+        count_photons+= array[i][0] + array[i][1]
+    print("measured photons: " + str(count_photons))
 
-def tf_communicate(alice_seed, bob_seed,length):
-    alice_bits = generate_random_Qbits(alice_seed,length)
-    bob_bits = generate_random_Qbits(bob_seed,length)
+
+
+    heatmap = np.zeros((6,6))
+    for i in range(len(array)):
+        if array[i][0] <= 5 and array[i][1] <= 5 :
+
+            heatmap[int(array[i][0])][int(array[i][1])] += 1
 
 
 
 
-#noise(generate_random_Qbits(generate_seed,10,0.5,0.5))
+    fig, ax = plt.subplots()
+    im = ax.imshow(heatmap)
+
+    # Show all ticks and label them with the respective list entries
+    #ax.set_xticks(range(len(farmers)), labels=farmers,
+    #            rotation=45, ha="right", rotation_mode="anchor")
+    #ax.set_yticks(range(len(vegetables)), labels=vegetables)
+
+    # Loop over data dimensions and create text annotations.
+    for i in range(len(heatmap[0])):
+        for j in range(len(heatmap)):
+            text = ax.text(j, i, heatmap[i, j],
+                        ha="center", va="center", color="w")
+    fig.colorbar(im, ax=ax)
+
+
+    ax.set_title("detecor clicks")
+    plt.xlabel("Photons on side D0")
+    plt.ylabel("Photons on side D1")
+    fig.tight_layout()
+    plt.savefig(path)
+
+    return count_photons
+    #plt.show()
+
+def make_heatmap_array(array,path,n):
+    array = array[0:n,0:n]
+    fig, ax = plt.subplots()
+    im = ax.imshow(array)
+    for i in range(array.shape[0]):
+        for j in range(array.shape[1]):
+            ax.text(
+                j, i,
+                f"{array[i, j]:.2f}",
+                ha="center",
+                va="center",
+                color="white"
+            )
+
+    
+    rect = patches.Rectangle(
+        xy=(0.5, -0.485),      # Start at x=0.5 (left edge of col 1), y=-0.5 (top edge of row 0)
+        width=3,             # Cover 4 columns (1, 2, 3, 4)
+        height=0.985,            # Cover 1 row (0)
+        linewidth=3,         # Thickness of the border
+        edgecolor='lime',    # Bright green color ('g' works too, but 'lime' pops more on heatmaps)
+        facecolor='lime',     # Keep the inside transparent
+        alpha=0.2
+    )
+    ax.add_patch(rect)
+    rect2 = patches.Rectangle(
+        xy=(-0.485, 0.5),      # Start at x=0.5 (left edge of col 1), y=-0.5 (top edge of row 0)
+        width=0.985,             # Cover 4 columns (1, 2, 3, 4)
+        height=3,            # Cover 1 row (0)
+        linewidth=3,         # Thickness of the border
+        edgecolor='lime',    # Bright green color ('g' works too, but 'lime' pops more on heatmaps)
+        facecolor='lime',     # Keep the inside transparent
+        alpha=0.2
+    )
+    ax.add_patch(rect2)
+    rect3 = patches.Rectangle(
+        xy=(0.515, 0.515),      # Start at x=0.5 (left edge of col 1), y=-0.5 (top edge of row 0)
+        width=2.985,             # Cover 4 columns (1, 2, 3, 4)
+        height=2.985,            # Cover 1 row (0)
+        linewidth=3,         # Thickness of the border
+        edgecolor='red',    # Bright green color ('g' works too, but 'lime' pops more on heatmaps)
+        facecolor='red',     # Keep the inside transparent
+        alpha=0.2
+    )
+    ax.add_patch(rect3)
+
+    #fig.colorbar(im, ax=ax)
+
+    ax.set_title("detecor clicks")
+    plt.xlabel("Photons on side D0")
+    plt.ylabel("Photons on side D1")
+    fig.tight_layout()
+    plt.savefig(path)
