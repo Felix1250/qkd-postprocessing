@@ -4,7 +4,7 @@ import math
 import strawberryfields as sf
 from strawberryfields import ops
 from tqdm import tqdm
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 import tf_utils
@@ -65,7 +65,7 @@ def generate_random_Qbits(seed, length):
                 phase_vector[i] = random.uniform(0,2*math.pi)
                 amplitude_vector[i] = np.sqrt(mu1)
             elif j < p_1 + p_2:
-                bit_vector[i] = 1
+                bit_vector[i] = 2
                 phase_vector[i] = random.uniform(0,2*math.pi)
                 amplitude_vector[i] = np.sqrt(mu2)
             else :
@@ -132,11 +132,59 @@ def run_trial(phase_A, phase_B, amplitude_A, amplitude_B):
     if random.random() < pd1:
         result.samples[0][1] += 1
     return result.samples[0]
-    
-'''
-do this
 
-'''
+
+def calc_ez(alice_bits,bob_bits,signal_bits,n):
+    if n > len(signal_bits):
+        raise ValueError("too many error test bits for key length")
+    arr2 = signal_bits.copy()
+    np.random.shuffle(arr2)
+    arr2 = arr2[:n]
+    arr = signal_bits[n:]
+    counter_NN = 0
+    counter_SN = 0
+    counter_SS = 0
+    for i in range(len(arr2)):
+        if alice_bits[1][arr2[i][0]] == 1 and bob_bits[1][arr2[i][0]] == 1:
+            counter_SS += 1
+            alice_bits[2][arr2[i][0]] - bob_bits[2][arr2[i][0]] < math.pi/2
+        elif alice_bits[1][arr2[i][0]] == 0 and bob_bits[1][arr2[i][0]] == 0:
+            counter_NN += 1     
+        else:
+            counter_SN += 1
+    print("---------------------------------------")
+    print("NN in signal window: " + str(counter_NN))
+    print("NS/SN in signal window: " + str(counter_SN))
+    print("SS in signal window: " + str(counter_SS))
+    Ez = (counter_NN + counter_SS) / n
+    print("Error rate of subset: " + str(Ez))
+    print("---------------------------------------")
+    return arr , Ez
+
+def calc_ex(alice_bits,bob_bits,decoy_bits):
+    s0 = 0
+    smu1 = 0
+    smu2 = 0
+    emu1 = 0
+    emu2 = 0
+    for i in range(len(decoy_bits)):
+        if alice_bits[1][decoy_bits[i][0]] == 0 and bob_bits[1][decoy_bits[i][0]] == 0:
+            s0 +=1
+        elif alice_bits[1][decoy_bits[i][0]] == 1 and bob_bits[1][decoy_bits[i][0]] == 1:
+            smu1 +=1
+        elif alice_bits[1][decoy_bits[i][0]] == 2 and bob_bits[1][decoy_bits[i][0]] == 2:
+            smu2 +=1
+    p2mu1 = 2 * mu1 * mu1 * math.pow(math.e,-2*mu1)
+    p2mu2 = 2 * mu2 * mu2 * math.pow(math.e,-2*mu2)
+    p1mu1 = 2 * mu1 * math.pow(math.e,-2*mu1)
+    p1mu2 = 2 * mu2 * math.pow(math.e,-2*mu2)
+    p0mu1 = math.pow(math.e,-2*mu1)
+    p0mu2 = math.pow(math.e,-2*mu2)
+    s1 = (p2mu2(smu1-p0mu1 * s0)-p2mu1 (smu2 - p0mu2*s0)) / (p2mu2*p1mu1 - p2mu1*p1mu2)
+
+
+
+
 def aftercomm(alice_bits,bob_bits,measures,length,psi_AB):
     signal_bits = []
     decoy_bits = []
@@ -146,26 +194,31 @@ def aftercomm(alice_bits,bob_bits,measures,length,psi_AB):
     for i in tqdm(range(length),"effective events"):
         # still have to figure out what to do with the phase
         if alice_bits[0][i] == 0 and bob_bits[0][i] == 0: # check whether both use the Z basis
-
-            if measures[i][0] == 0 and measures[i][0] != measures[i][1]: #only if detector 2 clicks
-                decoy_bits.append((i,1))
-            elif measures[i][1] == 0 and measures[i][0] != measures[i][1]: #only if detector 1 clicks
-                decoy_bits.append((i,0))
+            if alice_bits[1][i] == bob_bits[1][i]:
+                if 1-abs(np.cos(alice_bits[2][i]-bob_bits[2][i] + psi_AB[i])) <= abs(s_phaseSlice):
+                    if measures[i][0] == 0 and measures[i][0] != measures[i][1]: #only if detector 2 clicks
+                        decoy_bits.append((i,1))
+                    elif measures[i][1] == 0 and measures[i][0] != measures[i][1]: #only if detector 1 clicks
+                        decoy_bits.append((i,0))
         elif alice_bits[0][i] == 1 and bob_bits[0][i] == 1: #check whether both use the x basis
              #check phase slices
             #if math.floor(alice_bits[2][i]/s_phaseSlice) == math.floor(bob_bits[2][i]/s_phaseSlice): if you actually slice the thing in the number of slices
-            if abs(alice_bits[2][i] - bob_bits[2][i] - psi_AB[i]) < s_phaseSlice or abs(alice_bits[2][i] - bob_bits[2][i] - psi_AB[i] - math.pi) < s_phaseSlice:
+            #if abs(alice_bits[2][i] - bob_bits[2][i] - psi_AB[i]) < s_phaseSlice or abs(alice_bits[2][i] - bob_bits[2][i] - psi_AB[i] - math.pi) < s_phaseSlice:
                 # chekc if only one detector clicked
-                if measures[i][0] == 0 and measures[i][0] != measures[i][1]:
-                    signal_bits.append((i,1))
-                elif measures[i][1] == 0 and measures[i][0] != measures[i][1]:
-                    signal_bits.append((i,0))
+            if measures[i][0] == 0 and measures[i][0] != measures[i][1]:
+                signal_bits.append((i,1))
+            elif measures[i][1] == 0 and measures[i][0] != measures[i][1]:
+                signal_bits.append((i,0))
+    print("---------------------------------------")
     print("signal bits " + str(len(signal_bits)))
     print("decoy bits: " + str(len(decoy_bits)))
 
 
-    # generate Keys
+    # do analysis on the signal window
+    n = 100
+    signal_bits, Ez = calc_ez(alice_bits,bob_bits,signal_bits,n)
 
+    #generate keys
     alice_key = np.zeros(len(signal_bits))
     bob_key = np.zeros(len(signal_bits))
     for i in range(len(alice_key)):
@@ -175,6 +228,9 @@ def aftercomm(alice_bits,bob_bits,measures,length,psi_AB):
             bob_key[i] = 1
     tf_utils.print_error_rate(alice_key,bob_key)
     tf_utils.make_heatmap(measures,"figures/heatmap.png")
+
+    #take some random bits and do some error analysis
+   
 
     # Active odd parity paring 
     pairs = tf_utils.map_pairs(len(signal_bits))
@@ -195,12 +251,11 @@ def aftercomm(alice_bits,bob_bits,measures,length,psi_AB):
             alice_key_aopp[counter]= alice_key[i]
             bob_key_aopp[counter]= bob_key[i]
             counter +=1
-
+    print("---------------------------------------")
     print("length after aopp: " + str(aopp_length))
     print("percentage reduction: " + str(aopp_length/len(signal_bits)))
     tf_utils.print_error_rate(alice_key_aopp,bob_key_aopp)
     
-
 
 def tf_communicate(alice_seed, bob_seed,length):
     alice_bits = generate_random_Qbits(alice_seed,length)
@@ -216,7 +271,7 @@ def tf_communicate(alice_seed, bob_seed,length):
                     alice_bits[3][i],bob_bits[3][i],)
         measures[i][0]= temp[0]
         measures[i][1]= temp[1]
-    print(measures)
+    #print(measures)
     sent_photons =sum(alice_bits[3]) + sum(bob_bits[3])
     print("sent photons: " + str(sent_photons) )
     rec_photons = tf_utils.make_heatmap(measures,"figures/heatmap.png")
@@ -234,7 +289,7 @@ def tf_communicat_load(path="output_long.npz"):
     data = np.load(path)
     aftercomm(data["first"],data["second"],data["third"],data["fourth"],data["fifth"])
 
-tf_communicate(tf_utils.generate_seed(),tf_utils.generate_seed(),10000)
+#tf_communicate(tf_utils.generate_seed(),tf_utils.generate_seed(),10000)
 tf_communicat_load("output_extra_long.npz")
 #run_trial(0.1,0.1,0,0,0)
 

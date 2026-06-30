@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib as mpl
 import matplotlib.patches as patches  
 from numba import njit
+import math
 
 @njit
 def generate_seed():
@@ -134,3 +135,39 @@ def make_heatmap_array(array,path,n):
     plt.ylabel("Photons on side D1")
     fig.tight_layout()
     plt.savefig(path)
+
+def factorial(n1):
+  c1 = 1
+  for i1 in range(n1):
+    c1 = c1 * (n1 - i1)
+  return c1
+
+
+def possoin_graph(mu = 2.1):
+    a= []
+    labels = [0,1,2,3,4,5,6,7,"...","∞"]
+    x_positions = np.arange(len(labels))
+    
+    for i in range(10):
+        a.append( math.pow(mu,i) / factorial(i) *math.pow(math.e,-mu))
+    fig, ax = plt.subplots()
+    for spine in ["top", "right"]: #, "left", "bottom"]:
+        ax.spines[spine].set_visible(False)
+    #ax.spines["left"].set_position("zero")
+    #ax.spines["bottom"].set_position("zero")
+    plt.plot(a, label="Sine Wave", color="blue")
+    ax.set_xticks(x_positions,labels)
+    ax.annotate('', xy=(1, 0), xycoords='axes fraction', xytext=(0, 0), textcoords='axes fraction',
+            arrowprops=dict(facecolor='black', edgecolor='black', arrowstyle='->', lw=2, shrinkA=0, shrinkB=0))
+
+# 2. Up arrow for Y-axis (at the end of the left spine)
+    ax.annotate('', xy=(0, 1), xycoords='axes fraction', xytext=(0, 0), textcoords='axes fraction',
+            arrowprops=dict(facecolor='black', edgecolor='black', arrowstyle='->', lw=2, shrinkA=0, shrinkB=0))
+    plt.xlabel("Photon count")
+    plt.ylabel("probability")  
+    plt.rcParams.update({'font.size': 16})
+    ax.set_title("Probability of getting n Photons when \u03bc = 2.1")
+    #ax.set_yticks([])
+    plt.show()
+
+#possoin_graph()
